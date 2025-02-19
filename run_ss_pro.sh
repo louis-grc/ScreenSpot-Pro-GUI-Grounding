@@ -3,7 +3,7 @@ set -e
 
 # English
 
-models=("cogagent24" "ariaui" "uground" "osatlas-7b" "osatlas-4b" "showui" "seeclick" "qwen1vl" "qwen2vl" "minicpmv" "cogagent" "gpt4o" )
+models=("cogagent24" "ariaui" "uground" "osatlas-7b" "osatlas-4b" "showui" "seeclick" "qwen1vl" "qwen2vl" "qwen2-5vl" "minicpmv" "cogagent" "gpt4o" )
 for model in "${models[@]}"
 do
     python eval_screenspot_pro.py.py  \

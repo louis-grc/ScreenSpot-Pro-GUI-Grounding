@@ -55,6 +55,13 @@ def build_model(args):
             model.load_model(model_name_or_path=model_name_or_path)
         else:
             model.load_model()
+    elif model_type == "qwen2-5vl":
+        from models.qwen2vl import Qwen25VLModel
+        model = Qwen25VLModel()
+        if args.model_name_or_path:
+            model.load_model(model_name_or_path=model_name_or_path)
+        else:
+            model.load_model()
     elif model_type == "minicpmv":
         from models.minicpmv import MiniCPMVModel
         model = MiniCPMVModel()
@@ -94,13 +101,6 @@ def build_model(args):
         from models.cogagent24 import CogAgent24Model
         model = CogAgent24Model()
         model.load_model()
-
-    elif model_type == "seeclick-pro-agent":
-        from models.seeclick_pro import SeeClickProAgent
-        from models.osatlas7b import OSAtlas7BVLLMModel
-        grounder = OSAtlas7BVLLMModel()
-        grounder.load_model()
-        model = SeeClickProAgent(grounder=grounder)
     else:
         raise ValueError(f"Unsupported model type {model_type}.")
     model.set_generation_config(temperature=0, max_new_tokens=256)
