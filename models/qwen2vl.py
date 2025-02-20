@@ -1,3 +1,5 @@
+import tempfile
+
 import torch
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 from transformers.generation import GenerationConfig

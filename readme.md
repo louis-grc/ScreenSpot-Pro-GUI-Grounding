@@ -12,7 +12,7 @@ Before you begin, ensure your environment variables are set:
 ## Evaluation
 Use the shell scripts to launch the evaluation. 
 ```bash 
-bash run_ss_pro.sh
+bash runpod.sh
 ```
 or
 ```bash 
