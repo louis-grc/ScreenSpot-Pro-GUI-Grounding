@@ -6,6 +6,23 @@ export HF_TOKEN
 echo "OPENAI_API_KEY is set: ${OPENAI_API_KEY}"
 echo "HF_TOKEN is set: ${HF_TOKEN}"
 
+# Detect the number of NVIDIA GPUs and create a device string
+gpu_count=$(nvidia-smi -L | wc -l)
+if [ $gpu_count -eq 0 ]; then
+    echo "No NVIDIA GPUs detected. Exiting."
+    exit 1
+fi
+# Construct the CUDA device string
+cuda_devices=""
+for ((i=0; i<gpu_count; i++)); do
+    if [ $i -gt 0 ]; then
+        cuda_devices+=","
+    fi
+    cuda_devices+="$i"
+done
+
+echo "GPUs detected : ${cuda_devices}"
+
 cd ScreenSpot-Pro-GUI-Grounding
 
 pip install tqdm
