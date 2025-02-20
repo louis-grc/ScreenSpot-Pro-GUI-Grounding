@@ -3,6 +3,8 @@ set -e
 
 cd ScreenSpot-Pro-GUI-Grounding
 
+pip install tqdm
+
 # Single run of the evaluation script
 python ./eval_screenspot_pro.py  \
     --model_type "qwen2-5vl"  \
