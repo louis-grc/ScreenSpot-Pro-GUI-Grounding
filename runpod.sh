@@ -4,6 +4,8 @@ set -e
 cd ScreenSpot-Pro-GUI-Grounding
 
 pip install tqdm
+pip install git+https://github.com/huggingface/transformers accelerate
+pip install qwen-vl-utils
 
 # Single run of the evaluation script
 python ./eval_screenspot_pro.py  \
