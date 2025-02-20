@@ -57,8 +57,10 @@ def build_model(args):
         else:
             model.load_model()
     elif model_type == "qwen25vl":
+        print("Detected model is qwen25vl")
         from models.qwen25vl import Qwen25VLModel
         model = Qwen25VLModel()
+        print("Loaded model !")
         if args.model_name_or_path:
             model.load_model(model_name_or_path=model_name_or_path)
         else:
