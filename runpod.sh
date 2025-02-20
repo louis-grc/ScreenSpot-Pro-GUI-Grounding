@@ -19,8 +19,8 @@ python ./download_screenspot_pro_dataset.py
 python ./eval_screenspot_pro.py  \
     --model_type "qwen25vl"  \
     --model_name_or_path "Qwen/Qwen2.5-VL-7B-Instruct"  \
-    --screenspot_imgs "../screenspot_dataset/data/ScreenSpot-Pro/images"  \
-    --screenspot_test "../screenspot_dataset/data/ScreenSpot-Pro/annotations"  \
+    --screenspot_imgs "./screenspot_dataset/ScreenSpot-Pro/images"  \
+    --screenspot_test "./screenspot_dataset/ScreenSpot-Pro/annotations"  \
     --task "all" \
     --language "en" \
     --gt_type "positive" \
