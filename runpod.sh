@@ -6,6 +6,7 @@ cd ScreenSpot-Pro-GUI-Grounding
 pip install tqdm
 pip install git+https://github.com/huggingface/transformers accelerate
 pip install qwen-vl-utils
+pip install flash-attn --no-build-isolation
 
 # Single run of the evaluation script
 python ./eval_screenspot_pro.py  \
