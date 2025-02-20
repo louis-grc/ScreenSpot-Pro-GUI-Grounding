@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 export OPENAI_API_KEY=$OPENAI_API_KEY
+export HF_TOKEN
 
 echo "OPENAI_API_KEY is set: ${OPENAI_API_KEY}"
+echo "HF_TOKEN is set: ${HF_TOKEN}"
 
 cd ScreenSpot-Pro-GUI-Grounding
 

@@ -8,13 +8,15 @@ from tqdm import tqdm
 repo_id = 'likaixin/ScreenSpot-Pro'  # Adjust this to the correct repo
 output_dir = "screenspot_dataset"
 
+token = os.environ.get("HF_TOKEN")
+
 # Create output directory if it doesn't exist
 os.makedirs(output_dir, exist_ok=True)
 
 # Get the list of files in the repo
 from huggingface_hub import HfApi
 
-api = HfApi()
+api = HfApi(token=token)
 files_info = api.list_repo_files(repo_id)
 
 # Download all files
@@ -33,7 +35,8 @@ for file_path in tqdm(files_info, desc="Downloading files"):
             repo_id=repo_id,
             filename=file_path,
             local_dir=output_dir,
-            local_dir_use_symlinks=False
+            local_dir_use_symlinks=False,
+            token = token,
         )
     except Exception as e:
         print(f"Error downloading {file_path}: {e}")
