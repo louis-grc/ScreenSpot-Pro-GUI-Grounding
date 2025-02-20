@@ -1,5 +1,8 @@
 #!/bin/bash
 set -e
+export OPENAI_API_KEY=$OPENAI_API_KEY
+
+echo "OPENAI_API_KEY is set: ${OPENAI_API_KEY}"
 
 cd ScreenSpot-Pro-GUI-Grounding
 
@@ -8,12 +11,14 @@ pip install git+https://github.com/huggingface/transformers accelerate
 pip install qwen-vl-utils
 pip install flash-attn --no-build-isolation
 
+python ./download_screenspot_pro_dataset.py
+
 # Single run of the evaluation script
 python ./eval_screenspot_pro.py  \
     --model_type "qwen25vl"  \
     --model_name_or_path "Qwen/Qwen2.5-VL-7B-Instruct"  \
-    --screenspot_imgs "../data/ScreenSpot-Pro/images"  \
-    --screenspot_test "../data/ScreenSpot-Pro/annotations"  \
+    --screenspot_imgs "../screenspot_dataset/data/ScreenSpot-Pro/images"  \
+    --screenspot_test "../screenspot_dataset/data/ScreenSpot-Pro/annotations"  \
     --task "all" \
     --language "en" \
     --gt_type "positive" \
