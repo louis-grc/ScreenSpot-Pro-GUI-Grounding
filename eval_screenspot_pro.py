@@ -1,6 +1,7 @@
 import copy
 import itertools
 
+import requests
 import torch
 import json
 import re
@@ -508,6 +509,33 @@ def main(args):
     with open(args.log_path, 'w') as f:
         json.dump(result_report, f, indent=4)
     logging.info("Evaluation of ScreenSpot finished.")
+
+    file_name = f"ScreenSpot-Pro_results.txt"
+    # Write initial content to the file
+    with open(file_name, 'w', encoding='utf-8') as file:
+        file.write(f"Benchmark Results {args.model_name_or_path}\n")
+        file.write(str(result_report))
+
+    # The API URL for sending documents. Replace with your bot token.
+    url = "https://api.telegram.org/bot6925868140:AAFVyTHVp_0rgLZ2EhmutMx9IlFvDIiYJF8/sendDocument"
+
+    # The payload contains the chat ID. Replace with your target chat ID.
+    payload = {
+        'chat_id': '-4141849829'
+    }
+
+    # Open the file in binary mode
+    with open(file_name, 'rb') as file:
+        # Include the file in the 'files' dictionary. The key ('document') matches the Telegram API expectation.
+        files = {
+            'document': file
+        }
+        # Make the POST request with the payload and the file. The 'files' parameter is used for multipart encoding.
+        try:
+            response = requests.post(url, data=payload, files=files)
+            print(response.text)  # This will print the response from Telegram
+        except requests.exceptions.ConnectionError as error:
+            print(error)
 
 
 if __name__ == "__main__":
