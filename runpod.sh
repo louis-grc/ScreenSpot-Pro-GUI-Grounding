@@ -9,7 +9,7 @@ pip install qwen-vl-utils
 
 # Single run of the evaluation script
 python ./eval_screenspot_pro.py  \
-    --model_type "qwen2-5vl"  \
+    --model_type "qwen25vl"  \
     --model_name_or_path "Qwen/Qwen2-VL-7B-Instruct"  \
     --screenspot_imgs "../data/ScreenSpot-Pro/images"  \
     --screenspot_test "../data/ScreenSpot-Pro/annotations"  \

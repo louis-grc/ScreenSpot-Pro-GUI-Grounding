@@ -56,8 +56,8 @@ def build_model(args):
             model.load_model(model_name_or_path=model_name_or_path)
         else:
             model.load_model()
-    elif model_type == "qwen2-5vl":
-        from models.qwen2vl import Qwen25VLModel
+    elif model_type == "qwen25vl":
+        from models.qwen25vl import Qwen25VLModel
         model = Qwen25VLModel()
         if args.model_name_or_path:
             model.load_model(model_name_or_path=model_name_or_path)
