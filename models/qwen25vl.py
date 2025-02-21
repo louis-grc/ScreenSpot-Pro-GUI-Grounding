@@ -9,6 +9,69 @@ import os
 from PIL import Image
 
 from qwen_vl_utils import process_vision_info
+# added from cookbook
+import json
+from PIL import Image
+from IPython.display import display
+from qwen_agent.llm.fncall_prompts.nous_fncall_prompt import (
+    NousFnCallPrompt,
+    Message,
+    ContentItem,
+)
+from transformers.models.qwen2_vl.image_processing_qwen2_vl_fast import smart_resize
+
+from qwen25_agent_function_call import ComputerUse
+
+
+"""def perform_gui_grounding(screenshot_path, user_query, model, processor):
+
+    # Open and process image
+    input_image = Image.open(screenshot_path)
+    resized_height, resized_width = smart_resize(
+        input_image.height,
+        input_image.width,
+        factor=processor.image_processor.patch_size * processor.image_processor.merge_size,
+        min_pixels=processor.image_processor.min_pixels,
+        max_pixels=processor.image_processor.max_pixels,
+    )
+
+    # Initialize computer use function
+    computer_use = ComputerUse(
+        cfg={"display_width_px": resized_width, "display_height_px": resized_height}
+    )
+
+    # Build messages
+    message = NousFnCallPrompt.preprocess_fncall_messages(
+        messages=[
+            Message(role="system", content=[ContentItem(text="You are a helpful assistant.")]),
+            Message(role="user", content=[
+                ContentItem(text=user_query),
+                ContentItem(image=f"file://{screenshot_path}")
+            ]),
+        ],
+        functions=[computer_use.function],
+        lang=None,
+    )
+    message = [msg.model_dump() for msg in message]
+
+    # Process input
+    text = processor.apply_chat_template(message, tokenize=False, add_generation_prompt=True)
+    inputs = processor(text=[text], images=[input_image], padding=True, return_tensors="pt").to('cuda')
+
+    # Generate output
+    output_ids = model.generate(**inputs, max_new_tokens=2048)
+    generated_ids = [output_ids[len(input_ids):] for input_ids, output_ids in zip(inputs.input_ids, output_ids)]
+    output_text = processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)[0]
+
+    # Parse action and visualize
+    action = json.loads(output_text.split('<tool_call>\n')[1].split('\n</tool_call>')[0])
+    bbox = action['arguments']['coordinates']
+    #display_image = input_image.resize((resized_width, resized_height))
+    #display_image = draw_point(input_image, action['arguments']['coordinate'], color='green')
+
+    return output_text
+# added from cookbook
+"""
 
 # bbox -> point (str)
 def bbox_2_point(bbox, dig=2):
@@ -77,8 +140,12 @@ class Qwen25VLModel():
         self.generation_config.update(**kwargs)
         self.model.generation_config = GenerationConfig(**self.generation_config)
 
-
     def ground_only_positive(self, instruction, image):
+        """
+        Ground user instruction on an image using the new model format.
+        Returns coordinates in the original format for compatibility.
+        """
+        # Handle image input
         if not isinstance(image, str):
             assert isinstance(image, Image.Image)
             image_path = image_to_temp_filename(image)
@@ -86,118 +153,57 @@ class Qwen25VLModel():
             image_path = image
         assert os.path.exists(image_path) and os.path.isfile(image_path), "Invalid input image path."
 
-
-
-        prompt_origin = 'Output the bounding box in the image corresponding to the instruction "{}" with grounding.'
-        full_prompt = prompt_origin.format(instruction)
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "image": image_path,
-                    },
-                    {"type": "text", "text": full_prompt},
-                ],
-            }
-        ]
-        # Preparation for inference
-        text_input = self.processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
+        # Open and process image for resizing
+        input_image = Image.open(image_path)
+        resized_height, resized_width = smart_resize(
+            input_image.height,
+            input_image.width,
+            factor=self.processor.image_processor.patch_size * self.processor.image_processor.merge_size,
+            min_pixels=self.processor.image_processor.min_pixels,
+            max_pixels=self.processor.image_processor.max_pixels,
         )
-        image_inputs, video_inputs = process_vision_info(messages)
+
+        # Initialize computer use function
+        computer_use = ComputerUse(
+            cfg={"display_width_px": resized_width, "display_height_px": resized_height}
+        )
+
+        # Build messages using cookbook format
+        message = NousFnCallPrompt.preprocess_fncall_messages(
+            messages=[
+                Message(role="system", content=[ContentItem(text="You are a helpful assistant.")]),
+                Message(role="user", content=[
+                    ContentItem(text=instruction),
+                    ContentItem(image=f"file://{image_path}")
+                ]),
+            ],
+            functions=[computer_use.function],
+            lang=None,
+        )
+        message = [msg.model_dump() for msg in message]
+
+        # Process input
+        text = self.processor.apply_chat_template(message, tokenize=False, add_generation_prompt=True)
         inputs = self.processor(
-            text=[text_input],
-            images=image_inputs,
-            videos=video_inputs,
+            text=[text],
+            images=[input_image],
             padding=True,
-            return_tensors="pt",
-        )
-        inputs = inputs.to("cuda")
-        generated_ids = self.model.generate(**inputs)
+            return_tensors="pt"
+        ).to('cuda')
 
-        generated_ids_trimmed = [
-            out_ids[len(in_ids) :] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+        # Generate output
+        output_ids = self.model.generate(**inputs, max_new_tokens=2048)
+        generated_ids = [
+            output_ids[len(input_ids):]
+            for input_ids, output_ids in zip(inputs.input_ids, output_ids)
         ]
         response = self.processor.batch_decode(
-            generated_ids_trimmed, skip_special_tokens=False, clean_up_tokenization_spaces=False
+            generated_ids,
+            skip_special_tokens=False,
+            clean_up_tokenization_spaces=False
         )[0]
 
-
-        result_dict = {
-            "result": "positive",
-            "format": "x1y1x2y2",
-            "raw_response": response,
-            "bbox": None,
-            "point": None
-        }
-
-        if '<|box_start|>' in response and '<|box_end|>' in response:
-            pred_bbox = extract_bbox(response)
-            if pred_bbox is not None:
-                (x1, y1), (x2, y2) = pred_bbox
-                pred_bbox = [pos / 1000 for pos in [x1, y1, x2, y2]]
-                click_point = [(pred_bbox[0] + pred_bbox[2]) / 2, (pred_bbox[1] + pred_bbox[3]) / 2]
-                
-                result_dict["bbox"] = pred_bbox
-                result_dict["point"] = click_point
-        else:
-            print('---------------')
-            print(response)
-            click_point = pred_2_point(response)
-            click_point = [x / 1000 for x in click_point] if click_point else None
-            result_dict["point"] = click_point  # can be none
-        
-        return result_dict
-
-
-    def ground_allow_negative(self, instruction, image):
-        if not isinstance(image, str):
-            assert isinstance(image, Image.Image)
-            image_path = image_to_temp_filename(image)
-        else:
-            image_path = image
-        assert os.path.exists(image_path) and os.path.isfile(image_path), "Invalid input image path."
-
-        prompt_origin = 'Output the bounding box in the image corresponding to the instruction "{}". If the target does not exist, respond with "Target does not exist".'
-        full_prompt = prompt_origin.format(instruction)
-        messages = [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "image",
-                        "image": image_path,
-                    },
-                    {"type": "text", "text": full_prompt},
-                ],
-            }
-        ]
-        # Preparation for inference
-        text_input = self.processor.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-        image_inputs, video_inputs = process_vision_info(messages)
-        inputs = self.processor(
-            text=[text_input],
-            images=image_inputs,
-            videos=video_inputs,
-            padding=True,
-            return_tensors="pt",
-        )
-        inputs = inputs.to("cuda")
-        generated_ids = self.model.generate(**inputs)
-
-        generated_ids_trimmed = [
-            out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
-        ]
-        response = self.processor.batch_decode(
-            generated_ids_trimmed, skip_special_tokens=False, clean_up_tokenization_spaces=False
-        )[0]
-
-
-
+        # Initialize result dictionary with default values
         result_dict = {
             "result": None,
             "format": "x1y1x2y2",
@@ -206,21 +212,148 @@ class Qwen25VLModel():
             "point": None
         }
 
-        if '<|box_start|>' in response and '<|box_end|>' in response:
-            pred_bbox = extract_bbox(response)
-            if pred_bbox is not None:
-                (x1, y1), (x2, y2) = pred_bbox
-                pred_bbox = [pos / 1000 for pos in [x1, y1, x2, y2]]
-                click_point = [(pred_bbox[0] + pred_bbox[2]) / 2, (pred_bbox[1] + pred_bbox[3]) / 2]
+        try:
+            # Extract coordinates from tool call format
+            if '<tool_call>' in response and '</tool_call>' in response:
+                tool_call = response.split('<tool_call>\n')[1].split('\n</tool_call>')[0]
+                action_dict = json.loads(tool_call)
 
-                result_dict["bbox"] = pred_bbox
-                result_dict["point"] = click_point
-        else:
+                if 'arguments' in action_dict and 'coordinate' in action_dict['arguments']:
+                    # Get coordinates and normalize to 0-1 range
+                    coords = action_dict['arguments']['coordinate']
+                    normalized_x = coords[0] / resized_width
+                    normalized_y = coords[1] / resized_height
+
+                    # Set point in result dict
+                    result_dict["point"] = [normalized_x, normalized_y]
+
+                    # Create bbox from point (small box around click point)
+                    box_size = 0.02  # 2% of image size
+                    result_dict["bbox"] = [
+                        max(0, normalized_x - box_size),
+                        max(0, normalized_y - box_size),
+                        min(1, normalized_x + box_size),
+                        min(1, normalized_y + box_size)
+                    ]
+
+        except Exception as e:
+            print(f"Error parsing response: {e}")
             print('---------------')
             print(response)
-            click_point = pred_2_point(response)
-            click_point = [x / 1000 for x in click_point] if click_point else None
-            result_dict["point"] = click_point  # can be none
+
+        # set result status
+        if result_dict["bbox"] or result_dict["point"]:
+            result_status = "positive"
+        elif "Target does not exist".lower() in response.lower():
+            result_status = "negative"
+        else:
+            result_status = "wrong_format"
+        result_dict["result"] = result_status
+
+        return result_dict
+
+    def ground_allow_negative(self, instruction, image):
+        """
+        Ground user instruction on an image using the new model format.
+        Allows for negative responses when target does not exist.
+        Returns coordinates in the original format for compatibility.
+        """
+        # Handle image input
+        if not isinstance(image, str):
+            assert isinstance(image, Image.Image)
+            image_path = image_to_temp_filename(image)
+        else:
+            image_path = image
+        assert os.path.exists(image_path) and os.path.isfile(image_path), "Invalid input image path."
+
+        # Open and process image for resizing
+        input_image = Image.open(image_path)
+        resized_height, resized_width = smart_resize(
+            input_image.height,
+            input_image.width,
+            factor=self.processor.image_processor.patch_size * self.processor.image_processor.merge_size,
+            min_pixels=self.processor.image_processor.min_pixels,
+            max_pixels=self.processor.image_processor.max_pixels,
+        )
+
+        # Initialize computer use function
+        computer_use = ComputerUse(
+            cfg={"display_width_px": resized_width, "display_height_px": resized_height}
+        )
+
+        # Build messages using cookbook format
+        message = NousFnCallPrompt.preprocess_fncall_messages(
+            messages=[
+                Message(role="system", content=[ContentItem(text="You are a helpful assistant.")]),
+                Message(role="user", content=[
+                    ContentItem(
+                        text=f"{instruction}. If the target does not exist, respond with 'Target does not exist'."),
+                    ContentItem(image=f"file://{image_path}")
+                ]),
+            ],
+            functions=[computer_use.function],
+            lang=None,
+        )
+        message = [msg.model_dump() for msg in message]
+
+        # Process input
+        text = self.processor.apply_chat_template(message, tokenize=False, add_generation_prompt=True)
+        inputs = self.processor(
+            text=[text],
+            images=[input_image],
+            padding=True,
+            return_tensors="pt"
+        ).to('cuda')
+
+        # Generate output
+        output_ids = self.model.generate(**inputs, max_new_tokens=2048)
+        generated_ids = [
+            output_ids[len(input_ids):]
+            for input_ids, output_ids in zip(inputs.input_ids, output_ids)
+        ]
+        response = self.processor.batch_decode(
+            generated_ids,
+            skip_special_tokens=False,
+            clean_up_tokenization_spaces=False
+        )[0]
+
+        # Initialize result dictionary with default values
+        result_dict = {
+            "result": None,
+            "format": "x1y1x2y2",
+            "raw_response": response,
+            "bbox": None,
+            "point": None
+        }
+
+        try:
+            # Extract coordinates from tool call format
+            if '<tool_call>' in response and '</tool_call>' in response:
+                tool_call = response.split('<tool_call>\n')[1].split('\n</tool_call>')[0]
+                action_dict = json.loads(tool_call)
+
+                if 'arguments' in action_dict and 'coordinate' in action_dict['arguments']:
+                    # Get coordinates and normalize to 0-1 range
+                    coords = action_dict['arguments']['coordinate']
+                    normalized_x = coords[0] / resized_width
+                    normalized_y = coords[1] / resized_height
+
+                    # Set point in result dict
+                    result_dict["point"] = [normalized_x, normalized_y]
+
+                    # Create bbox from point (small box around click point)
+                    box_size = 0.02  # 2% of image size
+                    result_dict["bbox"] = [
+                        max(0, normalized_x - box_size),
+                        max(0, normalized_y - box_size),
+                        min(1, normalized_x + box_size),
+                        min(1, normalized_y + box_size)
+                    ]
+
+        except Exception as e:
+            print(f"Error parsing response: {e}")
+            print('---------------')
+            print(response)
 
         # set result status
         if result_dict["bbox"] or result_dict["point"]:
