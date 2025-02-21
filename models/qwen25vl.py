@@ -19,7 +19,7 @@ from qwen_agent.llm.fncall_prompts.nous_fncall_prompt import (
 )
 from transformers.models.qwen2_vl.image_processing_qwen2_vl_fast import smart_resize
 
-from qwen25_agent_function_call import ComputerUse
+from .qwen25_agent_function_call import ComputerUse
 
 
 """def perform_gui_grounding(screenshot_path, user_query, model, processor):
