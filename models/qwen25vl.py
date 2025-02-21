@@ -12,7 +12,6 @@ from qwen_vl_utils import process_vision_info
 # added from cookbook
 import json
 from PIL import Image
-from IPython.display import display
 from qwen_agent.llm.fncall_prompts.nous_fncall_prompt import (
     NousFnCallPrompt,
     Message,

@@ -28,6 +28,7 @@ cd ScreenSpot-Pro-GUI-Grounding
 pip install tqdm
 pip install git+https://github.com/huggingface/transformers accelerate
 pip install qwen-vl-utils
+pip install qwen_agent
 pip install flash-attn --no-build-isolation
 
 python ./download_screenspot_pro_dataset.py
