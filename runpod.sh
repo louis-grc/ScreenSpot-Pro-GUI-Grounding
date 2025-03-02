@@ -41,7 +41,7 @@ python ./eval_screenspot_pro.py  \
     --model_name_or_path "louisgrc/CU-Qwen-2.5-VL-7B-MacOS-Merged-V3.0"  \
     --screenspot_imgs "./screenspot_dataset/images"  \
     --screenspot_test "./screenspot_dataset/annotations"  \
-    --task "word_macos, vscode_macos, vmware_macos, pycharm_macos, matlab_macos, macos_common_macos, excel_macos, davinci_macos, android_studio_macos" \
+    --task "word_macos,vscode_macos,vmware_macos,pycharm_macos,matlab_macos,macos_common_macos,excel_macos,davinci_macos,android_studio_macos" \
     --language "en" \
     --gt_type "positive" \
     --log_path "./results/qwen2-5vl.json" \
