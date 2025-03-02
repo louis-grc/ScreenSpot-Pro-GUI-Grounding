@@ -37,7 +37,7 @@ python ./download_screenspot_pro_dataset.py
 #--task "all"
 python ./eval_screenspot_pro.py  \
     --model_type "qwen25vl"  \
-    --model_name_or_path "louisgrc/CU-Qwen-2.5-VL-7B-MacOS-Merged-V2.0"  \
+    --model_name_or_path "louisgrc/CU-Qwen-2.5-VL-7B-MacOS-Merged-V3.0"  \
     --screenspot_imgs "./screenspot_dataset/images"  \
     --screenspot_test "./screenspot_dataset/annotations"  \
     --task "word_macos.json, vscode_macos.json, vmware_macos.json, pycharm_macos.json, matlab_macos.json, macos_common_macos.json, excel_macos.json, davinci_macos.json, android_studio_macos.json" \
