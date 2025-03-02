@@ -25,6 +25,7 @@ echo "GPUs detected : ${cuda_devices}"
 
 cd ScreenSpot-Pro-GUI-Grounding
 
+pip install --upgrade torch torchvision
 pip install tqdm
 pip install git+https://github.com/huggingface/transformers accelerate
 pip install qwen-vl-utils
